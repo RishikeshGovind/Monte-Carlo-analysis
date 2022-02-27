@@ -1,1 +1,363 @@
+!pip install git+https://github.com/pydata/pandas-datareader.git
 
+from pandas_datareader import data as pdr
+import datetime
+
+tickers= ['GS', 'GSBD', 'BCS']
+start = datetime.datetime(2021,1,1)
+data = pdr.get_data_yahoo(tickers,start)
+
+data.head()
+
+data= data['Adj Close']
+
+portfolios =[0.35, 0.2, 0.45]
+
+import numpy as np
+import datetime
+
+np.sum(portfolios)
+
+data/data.iloc[0]
+
+(data/data.iloc[0])*portfolios*100000
+
+weight = np.random.random(3)
+weight/= weight.sum()
+weight
+
+weight.sum()
+
+###Volatilty of the stock and Average True Range(ATR)
+
+import pandas as pd
+
+start1 = datetime.datetime(2021,1,1)
+data1 = pdr.get_data_yahoo("BCS",start1)
+
+data1.head()
+
+high_low = data1['High'] - data1['Low']
+high_low
+
+high_cp = np.abs(data1['High'] - data1['Close'].shift())
+high_cp
+
+low_cp = np.abs(data1['Low'] - data1['Close'].shift())
+low_cp
+
+df1 = pd.concat([high_low,high_cp,low_cp],axis=1)
+df1.head()
+
+true_range = np.max(df1,axis=1)
+true_range
+
+average_true_range = true_range.rolling(14).mean()
+average_true_range
+
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+fig, ax = plt.subplots()
+average_true_range.plot(ax=ax)
+ax2 = data1['Close'].plot(ax=ax, secondary_y=True, alpha=0.7)
+ax.set_ylabel('ATR')
+ax2.set_ylabel('Price')
+
+##Risk and return
+##Sharpe ratio
+
+tickers2 = ['AAPL','MSFT','TWTR','IBM']
+start2 = datetime.datetime(2021,1,1)
+
+data2 = pdr.get_data_yahoo(tickers2, start2)
+
+data2.head()
+
+data2 = data2['Adj Close']
+data2.head()
+
+portfolio2 = [0.25, 0.15, 0.20, 0.40]
+
+np.sum(np.log((data2/data2.shift())*portfolio2),axis=1)
+
+log_return2= np.sum(np.log((data2/data2.shift())*portfolio2),axis=1)
+
+fig2, ax2 = plt.subplots()
+log_return2.hist(bins=50,ax = ax2)
+
+log_return2.std()
+
+log_return2.mean()
+
+sharpe_ratio = log_return2.mean()/log_return2.std()
+sharpe_ratio
+
+annual_sharpe_ratio = sharpe_ratio*252**0.5
+annual_sharpe_ratio
+
+weight2 = np.random.random(4)
+weight2 /= weight2.sum()
+weight2
+
+log_return3= np.sum(np.log((data2/data2.shift())*weight2),axis=1)
+
+sharpe_ratio1 = log_return3.mean()/log_return3.std()
+sharpe_ratio1
+
+annual_sharpe_ratio1 = sharpe_ratio1*252**0.5
+annual_sharpe_ratio1
+
+##Monte Carlo Simulation and Efficient frontier
+
+def roll_dice():
+  return np.sum(np.random.randint(1,7,2))
+  
+roll_dice()
+
+def monte_carlo_simulation(runs=1000):
+  results = np.zeros(2)
+  for _ in range(runs):
+    if roll_dice() == 7:
+      results[0] += 1
+    else:
+      results[1] += 1
+  return results
+  
+monte_carlo_simulation()
+
+results = np.zeros(1000)
+
+for i in range(1000):
+  results[i] = monte_carlo_simulation()[0]
+  
+results
+
+fig3,ax3 = plt.subplots()
+ax3.hist(results,bins =15)
+
+results.mean()
+
+results.mean()*5
+
+1000-results.mean()
+
+results.mean()/1000
+
+d1 = np.arange(1,7)
+d2 = np.arange(1,7)
+
+mat= np.add.outer(d1,d2)
+mat
+
+mat[mat==7].size
+
+mat[mat==7].size/mat.size
+
+tickers3 = ['BNP.PA','HSBC','SAN','ACA.PA']
+start3 = datetime.datetime(2021,1,1)
+
+data3 = pdr.get_data_yahoo(tickers3, start3)
+data3 = data3['Adj Close']
+data3.head()
+
+log_returns3 = np.log(data3/data3.shift())
+log_returns3
+
+weight4 = np.random.random(4)
+weight4 /= weight4.sum()
+weight4
+
+exp_returns3 = np.sum(log_returns3.mean()*weight4)*252
+exp_returns3
+
+exp_vol3 = np.sqrt(np.dot(weight4.T, np.dot(log_returns3.cov()* 252,weight4)))
+
+sharpe_ratio3 = exp_returns3/exp_vol3
+
+sharpe_ratio3
+
+#Monte Carlo Simulations
+n = 5000
+weights = np.zeros((n,4))
+exp_returns = np.zeros(n)
+exp_vols = np.zeros(n)
+sharpe_ratios = np.zeros(n)
+
+for i in range(n):
+  weight = np.random.random(4)
+  weight /= weight.sum()
+  weights[i] = weight
+
+  exp_returns[i] = np.sum(log_returns3.mean()*weight)*252
+  exp_vols[i] = np.sqrt(np.dot(weight.T, np.dot(log_returns3.cov()* 252,weight)))
+  sharpe_ratios[i] = exp_returns[i]/exp_vols[i]
+  
+sharpe_ratios
+
+sharpe_ratios.max()
+
+sharpe_ratios.argmax()
+
+weights[1135]
+
+fig, ax = plt.subplots()
+ax.scatter(exp_vols,exp_returns,c=sharpe_ratios)
+ax.scatter(exp_vols[sharpe_ratios.argmax()],exp_returns[sharpe_ratios.argmax()],c='r')
+ax.set_xlabel('Expected Volatility')
+ax.set_ylabel('Expected Return')
+
+##Correlation calculation
+
+tickers4 = ['AAPL','IBM','TWTR','MSFT']
+start4 = datetime.datetime(2021,1,1)
+
+data4 = pdr.get_data_yahoo(tickers4, start4)
+data4 = data4['Adj Close']
+data4.head()
+
+log_returns = np.log(data4/data4.shift())
+log_returns
+
+log_returns.corr()
+
+sp500 = pdr.get_data_yahoo('^GSPC',start)
+sp500.head()
+
+log_returns['SP500'] = np.log(sp500['Adj Close']/sp500['Adj Close'].shift())
+
+log_returns.corr()
+
+def test_correlation(ticker):
+  df = pdr.get_data_yahoo(ticker,start)
+  lr = log_returns.copy()
+  lr[ticker] = np.log(df['Adj Close']/df['Adj Close'].shift())
+  return lr.corr()
+  
+test_correlation('LQD')
+
+test_correlation('TLT')
+
+def visualize_correlation(ticker1,ticker2):
+  df = pdr.get_data_yahoo([ticker1,ticker2],start)
+  df = df['Adj Close']
+  df = df/df.iloc[0]
+  fig,ax = plt.subplots()
+  df.plot(ax=ax)
+  
+visualize_correlation('IBM','TLT')
+
+visualize_correlation('^GSPC','TLT')
+
+##Linear Regression
+
+from sklearn.linear_model import LinearRegression
+
+tickers5 = ['AAPL','IBM','TWTR','MSFT','^GSPC']
+start5 = datetime.datetime(2021,1,1)
+
+data5 = pdr.get_data_yahoo(tickers5, start5)
+data5 = data5['Adj Close']
+data5.head()
+
+ticker_a = 'AAPL'
+ticker_b = 'MSFT'
+
+X = log_returns[ticker_a].iloc[1:].to_numpy().reshape(-1,1)
+Y = log_returns[ticker_b].iloc[1:].to_numpy().reshape(-1,1)
+
+lin_regr = LinearRegression()
+lin_regr.fit(X,Y) 
+
+Y_pred = lin_regr.predict(X)
+
+alpha = lin_regr.intercept_[0]
+beta = lin_regr.coef_[0,0]
+
+fig, ax = plt.subplots()
+ax.scatter(X,Y)
+ax.plot(X,Y_pred, c='r')
+
+def linear_regression(ticker_a,ticker_b):
+  X = log_returns[ticker_a].iloc[1:].to_numpy().reshape(-1,1)
+  Y = log_returns[ticker_b].iloc[1:].to_numpy().reshape(-1,1)
+
+  lin_regr = LinearRegression()
+  lin_regr.fit(X,Y) 
+
+  Y_pred = lin_regr.predict(X)
+
+  alpha = lin_regr.intercept_[0]
+  beta = lin_regr.coef_[0,0]
+  
+  fig, ax = plt.subplots()
+  ax.set_title('Alpha: '+str(round(alpha,5)) + ', Beta: ' +str(round(beta,3)))
+  ax.scatter(X,Y)
+  ax.plot(X,Y_pred, c='r')
+  
+linear_regression('AAPL','MSFT')
+
+##Beta Calculation
+
+tickers = ['AAPL','IBM','TWTR','MSFT','^GSPC']
+start = datetime.datetime(2016,12,1)
+end = datetime.datetime(2022,1,1)
+
+data = pdr.get_data_yahoo(tickers, start, end, interval='m')
+data = data['Adj Close']
+data.head()
+
+log_returns =np.log(data/data.shift())
+log_returns
+
+cov = log_returns.cov()
+var = log_returns['^GSPC'].var()
+
+#Beta for Apple
+cov.loc['AAPL','^GSPC']/var
+
+cov.loc['^GSPC']/var
+
+#Beta for Apple
+X = log_returns['^GSPC'].iloc[1:].to_numpy().reshape(-1,1)
+Y = log_returns['AAPL'].iloc[1:].to_numpy().reshape(-1,1)
+
+lin_regr = LinearRegression()
+lin_regr.fit(X,Y)
+
+lin_regr.coef_[0,0]
+
+fig, ax = plt.subplots()
+ax.scatter(X,Y)
+
+##Capital asset pricing model(CAPM)
+
+tickers = ['AAPL','IBM','TWTR','MSFT','^GSPC']
+start = datetime.datetime(2016,12,1)
+end = datetime.datetime(2022,1,1)
+
+data = pdr.get_data_yahoo(tickers, start, end, interval='m')
+data = data['Adj Close']
+data.head()
+
+log_returns =np.log(data/data.shift())
+log_returns.head()
+
+cov = log_returns.cov()
+var = log_returns['^GSPC'].var()
+
+Beta = cov.loc['AAPL','^GSPC']/var
+Beta
+
+risk_free_return= 0.0138
+market_return = 0.105
+expected_return = risk_free_return + Beta*(market_return - risk_free_return)
+expected_return
+
+Beta*market_return
+
+beta = cov.loc['^GSPC']/var
+beta
+
+market_return = risk_free_return + beta*(market_return - risk_free_return)
+market_return
